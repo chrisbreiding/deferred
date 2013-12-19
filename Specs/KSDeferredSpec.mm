@@ -75,6 +75,9 @@ describe(@"KSDeferred", ^{
                         [joinedPromise.value objectAtIndex:1] should equal(@"SUCCESS2");
                     });
                     
+                    it(@"should be marked as fulfilled", ^{
+                        joinedPromise.fulfilled should be_truthy;
+                    });
                 });
                 
                 describe(@"when a promise is rejected and all joined promises have been fulfilled", ^{
@@ -94,24 +97,37 @@ describe(@"KSDeferred", ^{
                     });
                     
                 });
-
-                it(@"should be marked as fulfilled", ^{
-                    joinedPromise.fulfilled should be_truthy;
-                });
             });
 
             describe(@"when the first promise is rejected", ^{
                 beforeEach(^{
-                    [deferred2 rejectWithError:[NSError errorWithDomain:@"MyError" code:123 userInfo:nil]];
+                    [deferred rejectWithError:[NSError errorWithDomain:@"MyError" code:123 userInfo:nil]];
                 });
                 
                 it(@"should not reject the joined promise", ^{
                     fulfilled should_not be_truthy;
                     rejected should_not be_truthy;
                 });
-
-                it(@"should be marked as rejected", ^{
-                    joinedPromise.rejected should be_truthy;
+                
+                describe(@"when the second promise is resolved", ^{
+                    beforeEach(^{
+                        [deferred2 resolveWithValue:@"SUCCESS2"];
+                    });
+                    
+                    it(@"should call the rejected callback", ^{
+                        rejected should be_truthy;
+                    });
+                    
+                    it(@"should be able to read the resolved values of the joined promises", ^{
+                        joinedPromise.error.domain should equal(@"KSPromiseJoinError");
+                        NSArray *errors = [joinedPromise.error.userInfo objectForKey:@"errors"];
+                        errors.count should equal(1);
+                        [[errors lastObject] domain] should equal(@"MyError");
+                    });
+                    
+                    it(@"should be marked as rejected", ^{
+                        joinedPromise.rejected should be_truthy;
+                    });
                 });
             });
         });
